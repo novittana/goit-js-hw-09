@@ -15,30 +15,52 @@ const options = {
   time_24hr: true,
   defaultDate: new Date(),
   minuteIncrement: 1,
-  onClose(selectedDates) {
-    console.log(selectedDates[0]);
-  },
+  onClose: selectedDates => onCloseDateTimePicker(selectedDates),
 };
 
-selectedDates = flatpickr('input#datetime-picker', options);
+flatpickr('input#datetime-picker', options);
 
-console.dir(options.selectedDates);
+let selectedDate,
+  timerId = null;
 
-refs.btnStartEl.addEventListener('submit', event => {
-  event.preventDefault();
-});
+refs.btnStartEl.addEventListener('click', onStartButtonClick);
+refs.btnStartEl.disabled = true;
 
-//   Метод onClose() з об'єкта параметрів викликається щоразу під час закриття елемента інтерфейсу, який створює flatpickr. Саме у ньому варто обробляти дату, обрану користувачем. Параметр selectedDates - це масив обраних дат, тому ми беремо перший елемент.
+function onCloseDateTimePicker(selectedDates) {
+  selectedDate = selectedDates[0];
+  const currentDate = new Date();
 
-// Якщо користувач вибрав дату в минулому, покажи window.alert() з текстом "Please choose a date in the future".
-// Якщо користувач вибрав валідну дату (в майбутньому), кнопка «Start» стає активною.
-// Кнопка «Start» повинна бути неактивною доти, доки користувач не вибрав дату в майбутньому.
-// Натисканням на кнопку «Start» починається відлік часу до обраної дати з моменту натискання.
+  if (selectedDate <= currentDate) {
+    Notiflix.Report.failure('Please choose a date in the future');
+    refs.btnStartEl.disabled = true;
+  } else {
+    refs.btnStartEl.disabled = false;
+  }
+}
 
-// Натисканням на кнопку «Start» скрипт повинен обчислювати раз на секунду, скільки часу залишилось до вказаної дати, і оновлювати інтерфейс таймера, показуючи чотири цифри: дні, години, хвилини і секунди у форматі xx:xx:xx:xx.
+function onStartButtonClick() {
+  timerId = setInterval(() => countTime(), 1000);
+  countTime();
+}
 
-// Кількість днів може складатися з більше, ніж двох цифр.
-// Таймер повинен зупинятися, коли дійшов до кінцевої дати, тобто 00:00:00:00.
+function countTime() {
+  const currentDate = new Date();
+  const timeLeft = selectedDate - currentDate;
+
+  if (timeLeft <= 0) {
+    clearInterval(timerId);
+  }
+
+  updateTimerDisplay(Math.max(0, timeLeft));
+}
+
+function updateTimerDisplay(timeLeft) {
+  const timeToFinish = convertMs(timeLeft);
+  refs.daysToFinishEl.textContent = addLeadingZero(timeToFinish.days);
+  refs.hoursToFinishEl.textContent = addLeadingZero(timeToFinish.hours);
+  refs.minutesToFinishEl.textContent = addLeadingZero(timeToFinish.minutes);
+  refs.secondsToFinishEl.textContent = addLeadingZero(timeToFinish.seconds);
+}
 
 function convertMs(ms) {
   // Number of milliseconds per unit of time
@@ -60,5 +82,5 @@ function convertMs(ms) {
 }
 
 function addLeadingZero(value) {
-  padStart();
+  return value.toString().padStart(2, '0');
 }
